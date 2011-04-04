@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx" 
+			   xmlns:gui="com.era7.bioinfo.bio4j.go.gui.*"
+			   creationComplete="application1_creationCompleteHandler(event)"
+			   implements="com.era7.communication.interfaces.ServerUploadable" 
+			   xmlns:go="com.era7.bioinfo.gui.go.*">
+	<s:layout>
+		<s:VerticalLayout horizontalAlign="center" 
+						  paddingLeft="10" 
+						  paddingRight="10" 
+						  paddingTop="20" 
+						  paddingBottom="10"/>
+	</s:layout>
+	<fx:Script>
+		<![CDATA[
+			import com.era7.bioinfo.bio4j.go.comm.GoMapper;
+			import com.era7.bioinfo.bio4j.go.comm.RequestList;
+			import com.era7.bioinfo.gui.IconsManager;
+			import com.era7.bioinfo.gui.go.events.GoAnnotationSlimEvent;
+			import com.era7.communication.interfaces.ServerUploadable;
+			import com.era7.communication.managers.MainManager;
+			import com.era7.communication.xml.Request;
+			import com.era7.communication.xml.Response;
+			
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			
+			
+			protected var goMapper:GoMapper = null;
+			
+			
+			protected function application1_creationCompleteHandler(event:FlexEvent):void
+			{
+				goAnnotationSlimTab.addEventListener(GoAnnotationSlimEvent.GET_RESULTS, onGetResults);
+				
+				goMapper = new GoMapper();
+				
+				MainManager.ADD_SESSION_ID_TO_REQUEST = false;
+				MainManager.DEBUG_MODE = true;
+			}
+			
+			
+			protected function ohNoSeqBanner_clickHandler(event:MouseEvent):void
+			{
+				navigateToURL(new URLRequest("http://www.ohnosequences.com"),"_blank");
+			}
+			
+			
+			protected function bio4jLogo_clickHandler(event:MouseEvent):void
+			{
+				navigateToURL(new URLRequest("http://www.bio4j.com"),"_blank");
+			}
+			
+
+			
+			
+			protected function onGetResults(event:GoAnnotationSlimEvent):void{
+				
+				if(goAnnotationSlimTab.currentState == GoAnnotationSlimTab.GO_ANNOTATION_STATE){
+					
+					goMapper.downloadGoAnnotation(goAnnotationSlimTab.getProteinsFromTextArea());
+					
+				}else if(goAnnotationSlimTab.currentState == GoAnnotationSlimTab.GO_SLIM_STATE){
+					
+					goMapper.downloadGoSlim(goAnnotationSlimTab.getProteinsFromTextArea(),
+											goAnnotationSlimTab.getSlimSetFromTextArea());
+											
+				}
+			}
+			
+			/**
+			 * 	PROCESS UPLOAD COMPLETED
+			 */
+			public function processUploadCompleted(response:Response):void{	
+							
+				if(response.getMethod() == RequestList.GET_GO_ANNOTATION_CHART_XML_REQUEST){
+					
+				}else if(response.getMethod() == RequestList.GET_GO_SLIM_CHART_XML_REQUEST){
+					
+				}
+			}	
+			/**
+			 * 	PROCESS UPLOAD ERROR
+			 */
+			public function processUploadError(request:Request):void{
+				
+				Alert.show("There was an error with the request :("); 
+				
+			}
+			/**
+			 * 	PROCESS UPLOAD CANCELLED
+			 */
+			public function processUploadCancelled(request:Request):void{
+				
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<s:Label text="Bio4j Go Tools" fontWeight="bold" fontSize="24" height="40"/>
+	<s:RichText text="Bio4j Go Tools is a set of Gene-Ontology related Web Services using Bio4j as back-end." 
+				width="100%"/>
+	<mx:TabNavigator width="100%" height="100%">
+		<go:GoAnnotationSlimTab
+			id="goAnnotationSlimTab"
+			width="100%"
+			height="100%"/>
+		<mx:VBox label="GoAnnotation charts (coming soon)" 
+				 width="100%"
+				 height="100%" enabled="false">
+			<go:GoAnnotationChart width="100%" height="100%"/>
+		</mx:VBox>
+		<mx:VBox label="Go Slim charts (coming soon)" 
+				 width="100%"
+				 height="100%" 
+				 enabled="false">
+		</mx:VBox>
+	</mx:TabNavigator>
+	<mx:HBox width="100%" verticalAlign="middle" horizontalAlign="right">
+		<s:Label text="Powered by:"/>
+		<mx:SWFLoader 
+			source="{IconsManager.bio4jLogo}"
+			click="bio4jLogo_clickHandler(event)"
+			buttonMode="true"
+			mouseChildren="false"
+			useHandCursor="true"/>
+		<mx:SWFLoader 
+			source="{IconsManager.ohnoseqLogo}"
+			click="ohNoSeqBanner_clickHandler(event)"
+			buttonMode="true"
+			mouseChildren="false"
+			useHandCursor="true"/>
+	</mx:HBox>	
+</s:Application>
