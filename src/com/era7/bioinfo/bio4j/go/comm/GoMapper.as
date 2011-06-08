@@ -39,6 +39,7 @@ package com.era7.bioinfo.bio4j.go.comm
 			
 			var params:Parameters = new Parameters();
 			params.addParametersContent(proteins);
+			params.addParametersContent(<file_name>GoAnnotation</file_name>);
 			
 			temp.setParameters(params);
 			
@@ -62,6 +63,7 @@ package com.era7.bioinfo.bio4j.go.comm
 			
 			var params:Parameters = new Parameters();
 			params.addParametersContent(proteins);
+			params.addParametersContent(<file_name>GoSlim</file_name>);
 			params.addParametersContent(slimSet.getContent());
 			
 			temp.setParameters(params);
@@ -71,7 +73,7 @@ package com.era7.bioinfo.bio4j.go.comm
 			urlRequest.method = URLRequestMethod.POST;
 			var vars:URLVariables = new URLVariables();		
 			
-			Debugger.appendText(temp.toString(),Debugger.REQUEST_MODE);
+			//Debugger.appendText(temp.toString(),Debugger.REQUEST_MODE);
 			
 			vars.request = temp.toString();
 			urlRequest.data = vars; 
@@ -90,7 +92,7 @@ package com.era7.bioinfo.bio4j.go.comm
 			
 			var fileFilter:FileFilter = new FileFilter("XML files","*.xml");
 			
-			mainManager.uploadFile(request,serverUploadable,UrlManager.GET_GO_ANNOTATION_CHART_XML_URL,fileFilter);
+			mainManager.uploadFile(request,serverUploadable,UrlManager.GET_GO_ANNOTATION_CHART_XML_URL,fileFilter);			
 			
 		}
 		
@@ -105,6 +107,48 @@ package com.era7.bioinfo.bio4j.go.comm
 			var fileFilter:FileFilter = new FileFilter("XML files","*.xml");
 			
 			mainManager.uploadFile(request,serverUploadable,UrlManager.GET_GO_SLIM_CHART_XML_URL,fileFilter);
+			
+		}
+		
+		public function getGoAnnotationGexf(serverUploadable:ServerUploadable,
+											subOntology:String,
+											layoutAlgorithm:String,
+											layoutAlgorithmTime:String):void{
+			
+			var request:Request = new Request();
+			request.setMethod(RequestList.GET_GO_ANNOTATION_GEXF_REQUEST);
+			
+			var parameters:Parameters = new Parameters();
+			parameters.addParametersContent(<sub_ontology>{subOntology}</sub_ontology>);
+			parameters.addParametersContent(<layout_algorithm>{layoutAlgorithm}</layout_algorithm>);
+			parameters.addParametersContent(<layout_algorithm_time>{layoutAlgorithmTime}</layout_algorithm_time>);
+			request.setParameters(parameters);
+			
+			var fileFilter:FileFilter = new FileFilter("XML files","*.xml");
+			
+			mainManager.uploadFile(request,serverUploadable,UrlManager.GET_GO_ANNOTATION_GEXF_URL,fileFilter);			
+			
+		}
+		
+		public function getGoAnnotationGexfFromUrl(serverCallable:ServerCallable,
+											subOntology:String,
+											layoutAlgorithm:String,
+											layoutAlgorithmTime:String,
+											fileUrl:String):void{
+			
+			var request:Request = new Request();
+			request.setMethod(RequestList.GET_GO_ANNOTATION_GEXF_FROM_URL_REQUEST);
+			
+			var parameters:Parameters = new Parameters();
+			parameters.addParametersContent(<sub_ontology>{subOntology}</sub_ontology>);			
+			parameters.addParametersContent(<layout_algorithm>{layoutAlgorithm}</layout_algorithm>);
+			parameters.addParametersContent(<layout_algorithm_time>{layoutAlgorithmTime}</layout_algorithm_time>);
+			parameters.addParametersContent(<url>{fileUrl}</url>);
+			request.setParameters(parameters);
+			
+			var fileFilter:FileFilter = new FileFilter("XML files","*.xml");
+			
+			mainManager.loadRequest(request,serverCallable,UrlManager.GET_GO_ANNOTATION_GEXF_FROM_URL_URL);			
 			
 		}
 			

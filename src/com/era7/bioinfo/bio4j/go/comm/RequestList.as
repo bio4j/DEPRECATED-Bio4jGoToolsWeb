@@ -10,5 +10,9 @@ package com.era7.bioinfo.bio4j.go.comm
 		
 		public static const GET_GO_ANNOTATION_CHART_XML_REQUEST:String = "get_go_annotation_chart_xml";		
 		public static const GET_GO_SLIM_CHART_XML_REQUEST:String = "get_go_slim_chart_xml";
+		
+		public static const GET_GO_ANNOTATION_GEXF_REQUEST:String = "get_go_annotation_gexf";
+		public static const GET_GO_ANNOTATION_GEXF_FROM_URL_REQUEST:String = "get_go_annotation_gexf_from_url";
+		
 	}
 }

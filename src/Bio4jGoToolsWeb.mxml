@@ -3,9 +3,10 @@
 			   xmlns:s="library://ns.adobe.com/flex/spark" 
 			   xmlns:mx="library://ns.adobe.com/flex/mx" 
 			   xmlns:gui="com.era7.bioinfo.bio4j.go.gui.*"
-			   creationComplete="application1_creationCompleteHandler(event)"
-			   implements="com.era7.communication.interfaces.ServerUploadable" 
-			   xmlns:go="com.era7.bioinfo.gui.go.*">
+			   applicationComplete="application1_creationCompleteHandler(event)"
+			   implements="com.era7.communication.interfaces.ServerUploadable, com.era7.communication.interfaces.ServerCallable" 
+			   xmlns:go="com.era7.bioinfo.gui.go.*" 
+			   xmlns:charts="com.era7.bioinfo.gui.go.charts.*">
 	<s:layout>
 		<s:VerticalLayout horizontalAlign="center" 
 						  paddingLeft="10" 
@@ -17,28 +18,68 @@
 		<![CDATA[
 			import com.era7.bioinfo.bio4j.go.comm.GoMapper;
 			import com.era7.bioinfo.bio4j.go.comm.RequestList;
+			import com.era7.bioinfo.bio4j.go.comm.UrlManager;
+			import com.era7.bioinfo.gui.EnterUrlTitleWindow;
 			import com.era7.bioinfo.gui.IconsManager;
+			import com.era7.bioinfo.gui.events.UrlEvent;
+			import com.era7.bioinfo.gui.go.events.GoAnnotationChartEvent;
 			import com.era7.bioinfo.gui.go.events.GoAnnotationSlimEvent;
 			import com.era7.communication.interfaces.ServerUploadable;
 			import com.era7.communication.managers.MainManager;
+			import com.era7.communication.managers.UploadManager;
 			import com.era7.communication.xml.Request;
 			import com.era7.communication.xml.Response;
+			import com.era7.util.debug.Debugger;
+			import com.ofnodesandedges.y2010.ui.Main;
+			
+			import flash.net.navigateToURL;
 			
 			import mx.controls.Alert;
 			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
 			
 			
 			protected var goMapper:GoMapper = null;
 			
+			public static const BASE_STATE:String = "State1";
+			public static const GRAPH_STATE:String = "GraphState";
+			public static const LOADING_STATE:String = "LoadingState";
+			
+			protected var mainViz:Main = null;
+			
+			protected var lastNumChildren:Number = 0;
+			
+			[Bindable]
+			private var subOntologyComboBoxDataProvider:XML = <items>
+													<item name="biological_process" />
+													<item name="molecular_function" />
+													<item name="cellular_component" />
+												  </items>;	
+			
+			[Bindable]
+			private var algorithmComboBoxDataProvider:XML = <items>
+													<item name="YiFan Hu" />
+													<item name="Fruchterman Reingold" />
+												  </items>;	
+			
+			
+			protected var urlTitleWindow:EnterUrlTitleWindow = null;
 			
 			protected function application1_creationCompleteHandler(event:FlexEvent):void
 			{
-				goAnnotationSlimTab.addEventListener(GoAnnotationSlimEvent.GET_RESULTS, onGetResults);
+				MainManager.ADD_SESSION_ID_TO_REQUEST = false;
+				MainManager.DEBUG_MODE = false;	
+				MainManager.REQUEST_TIMEOUT = 3600;
+				
+				this.addEventListener(GoAnnotationSlimEvent.GET_RESULTS, onGetResults);
+				this.addEventListener(GoAnnotationChartEvent.UPLOAD_FILE, onGoAnnotationChartUploadFile);
 				
 				goMapper = new GoMapper();
+								
+				stage.frameRate = 60;
 				
-				MainManager.ADD_SESSION_ID_TO_REQUEST = false;
-				MainManager.DEBUG_MODE = true;
+				stage.addEventListener(KeyboardEvent.KEY_DOWN,application1_keyDownHandler);	
+				
 			}
 			
 			
@@ -69,6 +110,12 @@
 											
 				}
 			}
+			protected function onGoAnnotationChartUploadFile(event:GoAnnotationChartEvent):void{
+				goMapper.getGoAnnotationChartXML(this);			
+			}
+			
+			//------------------------------SERVER COMMUNICATION-------------------------
+			//----------------------------------------------------------------------------
 			
 			/**
 			 * 	PROCESS UPLOAD COMPLETED
@@ -77,8 +124,21 @@
 							
 				if(response.getMethod() == RequestList.GET_GO_ANNOTATION_CHART_XML_REQUEST){
 					
+					goAnnotationChart.setMainXML(XML(response.getContent().terms[0]));
+					
 				}else if(response.getMethod() == RequestList.GET_GO_SLIM_CHART_XML_REQUEST){
 					
+				}else if(response.getMethod() == RequestList.GET_GO_ANNOTATION_GEXF_REQUEST){
+										
+					var resp:XML = response.getContent();
+					
+					this.currentState = GRAPH_STATE;
+					
+					lastNumChildren = stage.numChildren;
+										
+					mainViz = new Main(stage,XML(resp.elements()[0]).toXMLString());
+					
+					UploadManager.CLOSE_PROGRESS_WINDOW_WHEN_COMPLETED = false;
 				}
 			}	
 			/**
@@ -95,24 +155,240 @@
 			public function processUploadCancelled(request:Request):void{
 				
 			}
+			
+			/**
+			 * 	PROCESS SUCCESSFUL RESPONSE
+			 */
+			public function processSuccessfulResponse(response:Response):void{
+				
+				//Debugger.appendText(response.toString(),Debugger.ERROR_MODE);
+				
+				if(response.getMethod() == RequestList.GET_GO_ANNOTATION_GEXF_FROM_URL_REQUEST){
+					
+					var resp:XML = response.getContent();
+					
+					this.currentState = GRAPH_STATE;
+					
+					lastNumChildren = stage.numChildren;
+					
+					mainViz = new Main(stage,XML(resp.elements()[0]).toXMLString());
+					
+				}
+			}
+			/**
+			 * 	PROCESS ERROR RESPONSE
+			 */
+			public function processErrorResponse(response:Response):void{
+				Alert.show(response.getErrorItem().getDescription());
+				
+				this.currentState = BASE_STATE;
+			}
+			/**
+			 * 	PROCESS NO SESSION RESPONSE
+			 */
+			public function processNoSessionResponse(response:Response):void{}
+			/**
+			 * 	PROCESS REQUEST TIMEOUT
+			 */
+			public function processRequestTimeout(request:Request):void{
+				Alert.show("Timeout reached for the request");
+				this.currentState = BASE_STATE;
+			}
+			
+			//----------------------------------------------------------------------------
+			//----------------------------------------------------------------------------
+
+
+			protected function loadGraphButton_clickHandler(event:MouseEvent):void
+			{							
+				UploadManager.CLOSE_PROGRESS_WINDOW_WHEN_COMPLETED = true;				
+				goMapper.getGoAnnotationGexf(this,
+											subOntologyComboBox.selectedLabel,
+											algorithmComboBox.selectedLabel,
+											algorithmTimeStepper.value.toString());
+			}
+			protected function loadFileFromUrlButton_clickHandler(event:MouseEvent):void
+			{				
+				initEnterUrlTitleWindow();				
+			}
+			
+
+
+			protected function application1_keyDownHandler(event:KeyboardEvent):void
+			{
+				
+				//Alert.show("key down: " + event.keyCode);
+				
+				
+				//---escape key pressed
+				if(event.keyCode == 27){
+					if(currentState == GRAPH_STATE){						
+						//mainViz.visible = false;
+						this.currentState = BASE_STATE;
+						navigateToURL(new URLRequest(UrlManager.APP_URL),"_self");
+					}
+				}
+			}
+
+
+			protected function gephiToolkitLabel_clickHandler(event:MouseEvent):void
+			{
+				navigateToURL(new URLRequest("http://gephi.org/toolkit/"),"_blank");
+			}
+			protected function sigmaLabel_clickHandler(event:MouseEvent):void
+			{
+				navigateToURL(new URLRequest("https://github.com/jacomyal/SiGMa"),"_blank");				
+			}
+			
+			
+			protected function initEnterUrlTitleWindow():void{
+				if(urlTitleWindow == null){
+					urlTitleWindow = EnterUrlTitleWindow(PopUpManager.createPopUp(this,EnterUrlTitleWindow,true));
+					urlTitleWindow.addEventListener(UrlEvent.URL_SELECTED, onUrlSelected);
+					PopUpManager.centerPopUp(urlTitleWindow);
+				}
+				PopUpManager.bringToFront(urlTitleWindow);
+				urlTitleWindow.visible = true;
+				
+			}
+			
+			protected function onUrlSelected(event:UrlEvent):void{							
+				
+				goMapper.getGoAnnotationGexfFromUrl(this,
+													subOntologyComboBox.selectedLabel,
+													algorithmComboBox.selectedLabel,
+													algorithmTimeStepper.value.toString(),
+													event.getUrl());
+				
+				this.currentState = LOADING_STATE;
+				
+			} 
 
 		]]>
 	</fx:Script>
+	<s:states>
+		<s:State name="State1"/>
+		<s:State name="GraphState"/>
+		<s:State name="LoadingState"/>
+	</s:states>
 	<fx:Declarations>
 		<!-- Place non-visual elements (e.g., services, value objects) here -->
 	</fx:Declarations>
-	<s:Label text="Bio4j Go Tools" fontWeight="bold" fontSize="24" height="40"/>
+	<s:Label text="Bio4j Go Tools" fontWeight="bold" fontSize="24" height="40" includeIn="LoadingState,State1"/>
 	<s:RichText text="Bio4j Go Tools is a set of Gene-Ontology related Web Services using Bio4j as back-end." 
-				width="100%"/>
-	<mx:TabNavigator width="100%" height="100%">
+				width="100%" includeIn="LoadingState,State1"/>
+	<mx:TabNavigator width="100%" height="100%" includeIn="LoadingState,State1">
 		<go:GoAnnotationSlimTab
 			id="goAnnotationSlimTab"
 			width="100%"
-			height="100%"/>
-		<mx:VBox label="GoAnnotation charts (coming soon)" 
+			height="100%"/>		
+		<mx:VBox label="GoAnnotation charts" 				 
 				 width="100%"
-				 height="100%" enabled="false">
-			<go:GoAnnotationChart width="100%" height="100%"/>
+				 height="100%" 
+				 enabled="true">
+			<charts:GoAnnotationChart width="100%" 
+									  height="100%"
+									  id="goAnnotationChart"/>
+		</mx:VBox>
+		<mx:VBox label="GoAnnotation Graph Viz" 
+				 width="100%" 
+				 height="100%" 
+				 horizontalAlign="left"
+				 paddingTop="20" 
+				 paddingLeft="10" 
+				 paddingRight="10" 
+				 paddingBottom="10" 
+				 verticalScrollPolicy="off" 
+				 horizontalScrollPolicy="off" 
+				 enabled="true" verticalGap="10" 
+				 horizontalAlign.LoadingState="center" 
+				 verticalAlign.LoadingState="middle">
+			<mx:VBox width="{pleaseClickLabel.width}" 
+					 cornerRadius="10" 
+					 backgroundColor="#EBEBEB" 
+					 paddingLeft="5"
+					 paddingRight="5" 
+					 paddingTop="5"
+					 paddingBottom="5"  includeIn="State1">
+				<mx:HBox width="100%" paddingLeft="5" 
+						 paddingRight="5" 
+						 paddingTop="5" 
+						 paddingBottom="5" 
+						 cornerRadius="10" 
+						 verticalAlign="middle">
+					
+					<s:Label text="Select a sub-ontology"/>
+					<mx:Spacer width="36"/>
+					<mx:ComboBox id="subOntologyComboBox" 
+								 dataProvider="{subOntologyComboBoxDataProvider.item}" 
+								 labelField="@name"/>			
+				</mx:HBox>
+				<mx:HBox width="100%" paddingLeft="5" 
+						 paddingRight="5" 
+						 paddingTop="5" 
+						 paddingBottom="5" 
+						 cornerRadius="10" 
+						 verticalAlign="middle">
+					
+					<s:Label text="Layout algorithm:"/>
+					<mx:Spacer width="60"/>
+					<mx:ComboBox id="algorithmComboBox"
+								 dataProvider="{algorithmComboBoxDataProvider.item}" 
+								 labelField="@name"/>
+				</mx:HBox>			
+				<s:HGroup 
+						  width="100%" 
+						  verticalAlign="middle"
+						  paddingLeft="5" 
+						  paddingRight="5" 
+						  paddingTop="5" 
+						  paddingBottom="5">
+					<s:Label text="Layour algorithm time:"/>
+					<mx:Spacer width="37"/>
+					<s:NumericStepper id="algorithmTimeStepper" 
+									  maximum="10" 
+									  minimum="1" 
+									  stepSize="1"/>
+					<s:Label text="(time in minutes)" fontStyle="italic"/>
+				</s:HGroup>
+			</mx:VBox>			
+			<s:HGroup includeIn="State1">
+				<mx:SWFLoader source="{IconsManager.loadFileButton}"
+							  id="loadGraphButton" 
+							  click="loadGraphButton_clickHandler(event)"
+							  useHandCursor="true"
+							  mouseChildren="false"
+							  buttonMode="true"/>		
+				<mx:SWFLoader source="{IconsManager.loadFileFromUrlButton}"
+							  id="loadFileFromUrlButton" 
+							  click="loadFileFromUrlButton_clickHandler(event)"
+							  useHandCursor="true"
+							  mouseChildren="false"
+							  buttonMode="true"/>	
+			</s:HGroup>			
+			<mx:SWFLoader 
+					source="{IconsManager.loadingSWF}" includeIn="LoadingState"/>
+			<mx:Text text="Please click on either button to load a XML file you got using the GoAnnotation service available at the first tab.&#xd;" includeIn="State1" id="pleaseClickLabel"/>
+			<s:HGroup gap="1" includeIn="State1">
+				<s:Label text="This feature uses"/>
+				<s:Label id="gephiToolkitLabel" 
+						 text="Gephi Toolkit" 
+						 click="gephiToolkitLabel_clickHandler(event)" 
+						 fontStyle="italic" 
+						 color="#367CDB"
+						 buttonMode="true"
+						 mouseChildren="false"
+						 useHandCursor="true"/>
+				<s:Label text="and"/>
+				<s:Label text="SiGMa project"
+						 id="sigmaLabel"
+						 click="sigmaLabel_clickHandler(event)" 
+						 color="#367CDB" 
+						 fontStyle="italic" 
+						 buttonMode="true"
+						 mouseChildren="false"
+						 useHandCursor="true"/>
+			</s:HGroup>
 		</mx:VBox>
 		<mx:VBox label="Go Slim charts (coming soon)" 
 				 width="100%"
@@ -120,7 +396,7 @@
 				 enabled="false">
 		</mx:VBox>
 	</mx:TabNavigator>
-	<mx:HBox width="100%" verticalAlign="middle" horizontalAlign="right">
+	<mx:HBox width="100%" verticalAlign="middle" horizontalAlign="right" includeIn="LoadingState,State1">
 		<s:Label text="Powered by:"/>
 		<mx:SWFLoader 
 			source="{IconsManager.bio4jLogo}"
@@ -135,4 +411,5 @@
 			mouseChildren="false"
 			useHandCursor="true"/>
 	</mx:HBox>	
+	<s:Label includeIn="GraphState" text="Press esc to go back to the app" fontSize="20" fontStyle="italic" color="#B8B8B8"/>
 </s:Application>
