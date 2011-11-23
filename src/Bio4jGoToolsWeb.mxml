@@ -65,6 +65,8 @@
 			
 			protected var urlTitleWindow:EnterUrlTitleWindow = null;
 			
+			protected var getGexfFileButtonClicked:Boolean = false;
+			
 			protected function application1_creationCompleteHandler(event:FlexEvent):void
 			{
 				MainManager.ADD_SESSION_ID_TO_REQUEST = false;
@@ -254,15 +256,35 @@
 			
 			protected function onUrlSelected(event:UrlEvent):void{							
 				
-				goMapper.getGoAnnotationGexfFromUrl(this,
-													subOntologyComboBox.selectedLabel,
-													algorithmComboBox.selectedLabel,
-													algorithmTimeStepper.value.toString(),
-													event.getUrl());
+				if(getGexfFileButtonClicked){
+					
+					goMapper.downloadGoAnnotationGexfFromUrl(subOntologyComboBox.selectedLabel,
+						algorithmComboBox.selectedLabel,
+						algorithmTimeStepper.value.toString(),
+						event.getUrl());
+					
+					getGexfFileButtonClicked = false;
+					
+				}else{
+					
+					goMapper.getGoAnnotationGexfFromUrl(this,
+						subOntologyComboBox.selectedLabel,
+						algorithmComboBox.selectedLabel,
+						algorithmTimeStepper.value.toString(),
+						event.getUrl());
+					
+					this.currentState = LOADING_STATE;
+				}				
 				
-				this.currentState = LOADING_STATE;
 				
 			} 
+
+
+			protected function getGexfFileButton_clickHandler(event:MouseEvent):void
+			{
+				getGexfFileButtonClicked = true;
+				initEnterUrlTitleWindow();	
+			}
 
 		]]>
 	</fx:Script>
@@ -369,6 +391,11 @@
 			<mx:SWFLoader 
 					source="{IconsManager.loadingSWF}" includeIn="LoadingState"/>
 			<mx:Text text="Please click on either button to load a XML file you got using the GoAnnotation service available at the first tab.&#xd;" includeIn="State1" id="pleaseClickLabel"/>
+			<s:HGroup verticalAlign.State1="middle">
+				<s:Label includeIn="State1" text="Click this button if you just want the corresponding .gexf file: "/>
+				<s:Button includeIn="State1" label="Get .gexf file" id="getGexfFileButton" click="getGexfFileButton_clickHandler(event)"/>
+			</s:HGroup>
+			
 			<s:HGroup gap="1" includeIn="State1">
 				<s:Label text="This feature uses"/>
 				<s:Label id="gephiToolkitLabel" 

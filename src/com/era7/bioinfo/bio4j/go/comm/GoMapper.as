@@ -145,11 +145,35 @@ package com.era7.bioinfo.bio4j.go.comm
 			parameters.addParametersContent(<layout_algorithm_time>{layoutAlgorithmTime}</layout_algorithm_time>);
 			parameters.addParametersContent(<url>{fileUrl}</url>);
 			request.setParameters(parameters);
-			
-			var fileFilter:FileFilter = new FileFilter("XML files","*.xml");
-			
+						
 			mainManager.loadRequest(request,serverCallable,UrlManager.GET_GO_ANNOTATION_GEXF_FROM_URL_URL);			
 			
+		}
+		
+		public function downloadGoAnnotationGexfFromUrl(subOntology:String,
+												   layoutAlgorithm:String,
+												   layoutAlgorithmTime:String,
+												   fileUrl:String):void{
+			
+			var request:Request = new Request();
+			request.setMethod(RequestList.GET_GO_ANNOTATION_GEXF_FROM_URL_REQUEST);
+			
+			var parameters:Parameters = new Parameters();
+			parameters.addParametersContent(<sub_ontology>{subOntology}</sub_ontology>);			
+			parameters.addParametersContent(<layout_algorithm>{layoutAlgorithm}</layout_algorithm>);
+			parameters.addParametersContent(<layout_algorithm_time>{layoutAlgorithmTime}</layout_algorithm_time>);
+			parameters.addParametersContent(<url>{fileUrl}</url>);
+			request.setParameters(parameters);						
+		
+			var urlRequest:URLRequest = new URLRequest(UrlManager.GET_GO_ANNOTATION_GEXF_FROM_URL_URL);
+			
+			urlRequest.method = URLRequestMethod.POST;
+			var vars:URLVariables = new URLVariables();		
+			
+			vars.request = request.toString();
+			urlRequest.data = vars; 
+			
+			navigateToURL(urlRequest,"_self");
 		}
 			
 		
