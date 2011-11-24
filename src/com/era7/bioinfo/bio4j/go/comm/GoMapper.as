@@ -156,7 +156,7 @@ package com.era7.bioinfo.bio4j.go.comm
 												   fileUrl:String):void{
 			
 			var request:Request = new Request();
-			request.setMethod(RequestList.GET_GO_ANNOTATION_GEXF_FROM_URL_REQUEST);
+			request.setMethod(RequestList.DOWNLOAD_GO_ANNOTATION_GEXF_FROM_URL_REQUEST);
 			
 			var parameters:Parameters = new Parameters();
 			parameters.addParametersContent(<sub_ontology>{subOntology}</sub_ontology>);			
@@ -165,7 +165,7 @@ package com.era7.bioinfo.bio4j.go.comm
 			parameters.addParametersContent(<url>{fileUrl}</url>);
 			request.setParameters(parameters);						
 		
-			var urlRequest:URLRequest = new URLRequest(UrlManager.GET_GO_ANNOTATION_GEXF_FROM_URL_URL);
+			var urlRequest:URLRequest = new URLRequest(UrlManager.DOWNLOAD_GO_ANNOTATION_GEXF_FROM_URL_URL);
 			
 			urlRequest.method = URLRequestMethod.POST;
 			var vars:URLVariables = new URLVariables();		
@@ -173,7 +173,7 @@ package com.era7.bioinfo.bio4j.go.comm
 			vars.request = request.toString();
 			urlRequest.data = vars; 
 			
-			navigateToURL(urlRequest,"_self");
+			navigateToURL(urlRequest,"_blank");
 		}
 			
 		

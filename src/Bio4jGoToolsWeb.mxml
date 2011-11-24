@@ -391,11 +391,12 @@
 			<mx:SWFLoader 
 					source="{IconsManager.loadingSWF}" includeIn="LoadingState"/>
 			<mx:Text text="Please click on either button to load a XML file you got using the GoAnnotation service available at the first tab.&#xd;" includeIn="State1" id="pleaseClickLabel"/>
-			<s:HGroup verticalAlign.State1="middle">
-				<s:Label includeIn="State1" text="Click this button if you just want the corresponding .gexf file: "/>
-				<s:Button includeIn="State1" label="Get .gexf file" id="getGexfFileButton" click="getGexfFileButton_clickHandler(event)"/>
-			</s:HGroup>
-			
+			<s:HGroup verticalAlign="middle" width="100%">
+				<s:Label text="Click this button if you just want the corresponding .gexf file: "/>
+				<s:Button label="Get .gexf file" 
+						  id="getGexfFileButton" 
+						  click="getGexfFileButton_clickHandler(event)"/>
+			</s:HGroup>			
 			<s:HGroup gap="1" includeIn="State1">
 				<s:Label text="This feature uses"/>
 				<s:Label id="gephiToolkitLabel" 

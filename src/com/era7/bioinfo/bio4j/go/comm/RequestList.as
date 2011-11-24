@@ -13,6 +13,7 @@ package com.era7.bioinfo.bio4j.go.comm
 		
 		public static const GET_GO_ANNOTATION_GEXF_REQUEST:String = "get_go_annotation_gexf";
 		public static const GET_GO_ANNOTATION_GEXF_FROM_URL_REQUEST:String = "get_go_annotation_gexf_from_url";
+		public static const DOWNLOAD_GO_ANNOTATION_GEXF_FROM_URL_REQUEST:String = "download_go_annotation_gexf_from_url";
 		
 	}
 }
